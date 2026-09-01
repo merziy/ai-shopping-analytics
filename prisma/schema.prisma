@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:dev.sqlite"
+}
+
+// Shopify auth sessions — do not remove
+model Session {
+  id                  String    @id
+  shop                String
+  state               String
+  isOnline            Boolean   @default(false)
+  scope               String?
+  expires             DateTime?
+  accessToken         String
+  userId              BigInt?
+  firstName           String?
+  lastName            String?
+  email               String?
+  accountOwner        Boolean   @default(false)
+  locale              String?
+  collaborator        Boolean?  @default(false)
+  emailVerified       Boolean?  @default(false)
+  refreshToken        String?
+  refreshTokenExpires DateTime?
+}
+
+// Visitor session — one per browser session, created on first storefront visit
+model VisitorSession {
+  id           String   @id @default(cuid())
+  shop         String                        // myshopify domain
+  token        String   @unique              // anonymous token from sessionStorage
+  referrer     String?                       // raw HTTP referrer
+  aiPlatform   String?                       // "chatgpt" | "perplexity" | "copilot" | etc.
+  utmSource    String?
+  utmMedium    String?
+  utmCampaign  String?
+  landingPage  String?
+  startedAt    DateTime @default(now())
+  events       PageEvent[]
+  order        AttributedOrder?
+}
+
+// Storefront events — page views, add-to-cart, checkout start
+model PageEvent {
+  id        String         @id @default(cuid())
+  sessionId String
+  session   VisitorSession @relation(fields: [sessionId], references: [id])
+  eventType String                            // "page_view" | "add_to_cart" | "checkout_started"
+  page      String?
+  productId String?
+  createdAt DateTime       @default(now())
+}
+
+// Orders attributed to a visitor session
+model AttributedOrder {
+  id             String          @id @default(cuid())
+  shop           String
+  shopifyOrderId String
+  orderTotal     Float
+  currency       String
+  sessionId      String?         @unique
+  session        VisitorSession? @relation(fields: [sessionId], references: [id])
+  aiPlatform     String?         // denormalized from session for easy querying
+  createdAt      DateTime        @default(now())
+}
