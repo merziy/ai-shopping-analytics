@@ -1,20 +1,8 @@
-/**
- * GET /tracking.js
- * Serves the storefront tracking script.
- * Public — no auth. Injected via Shopify ScriptTag API.
- */
-
-import type { LoaderFunctionArgs } from "react-router";
-
-export async function loader({ request }: LoaderFunctionArgs) {
-  const appUrl = new URL(request.url).origin;
-
-  const script = `
+<script>
 (function() {
   var SESSION_KEY = 'aisa_v1';
-  var APP_URL = '${appUrl}';
+  var APP_URL = {{ block.settings.app_url | json }};
 
-  // Get or create anonymous session token
   function getToken() {
     try {
       var t = sessionStorage.getItem(SESSION_KEY);
@@ -26,7 +14,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
     } catch(e) { return 'ns_' + Date.now(); }
   }
 
-  // Parse UTM params from URL
   function getUtm() {
     try {
       var p = new URLSearchParams(window.location.search);
@@ -40,9 +27,13 @@ export async function loader({ request }: LoaderFunctionArgs) {
 
   function post(path, data) {
     try {
-      navigator.sendBeacon
-        ? navigator.sendBeacon(APP_URL + path, new Blob([JSON.stringify(data)], {type:'application/json'}))
-        : fetch(APP_URL + path, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(data), keepalive:true});
+      fetch(APP_URL + path, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+        credentials: 'omit',
+        keepalive: true
+      });
     } catch(e) {}
   }
 
@@ -50,7 +41,6 @@ export async function loader({ request }: LoaderFunctionArgs) {
   var utm = getUtm();
   var shop = (window.Shopify && window.Shopify.shop) ? window.Shopify.shop : location.hostname;
 
-  // Register session on first load
   post('/api/session', {
     shopDomain: shop,
     token: token,
@@ -61,29 +51,34 @@ export async function loader({ request }: LoaderFunctionArgs) {
     landingPage: location.pathname
   });
 
-  // Track add-to-cart clicks
   document.addEventListener('click', function(e) {
-    var btn = e.target && (e.target.closest('[data-add-to-cart]') || e.target.closest('[name="add"]') || e.target.closest('.add-to-cart'));
-    if (btn) {
+    var t = e.target;
+    if (t && (t.closest('[data-add-to-cart]') || t.closest('[name="add"]') || t.closest('.add-to-cart'))) {
       post('/api/event', { token: token, eventType: 'add_to_cart', page: location.pathname });
     }
   }, true);
 
-  // Track checkout start
   document.addEventListener('click', function(e) {
-    var btn = e.target && (e.target.closest('[name="checkout"]') || e.target.closest('[href*="/checkout"]'));
-    if (btn) {
+    var t = e.target;
+    if (t && (t.closest('[name="checkout"]') || t.closest('[href*="/checkout"]'))) {
       post('/api/event', { token: token, eventType: 'checkout_started', page: location.pathname });
     }
   }, true);
 })();
-`.trim();
+</script>
 
-  return new Response(script, {
-    headers: {
-      "Content-Type": "application/javascript; charset=utf-8",
-      "Cache-Control": "public, max-age=300",
-      "Access-Control-Allow-Origin": "*",
-    },
-  });
+{% schema %}
+{
+  "name": "AI Analytics",
+  "target": "body",
+  "settings": [
+    {
+      "type": "text",
+      "id": "app_url",
+      "label": "App URL",
+      "default": "https://your-app.fly.dev",
+      "info": "The URL of your AI Analytics app server."
+    }
+  ]
 }
+{% endschema %}

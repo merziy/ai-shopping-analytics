@@ -3,17 +3,9 @@ import { Outlet, useLoaderData, useRouteError } from "react-router";
 import { boundary } from "@shopify/shopify-app-react-router/server";
 import { AppProvider } from "@shopify/shopify-app-react-router/react";
 import { authenticate } from "../shopify.server";
-import { ensureScriptTag } from "../lib/script-tag.server";
 
 export const loader = async ({ request }: LoaderFunctionArgs) => {
-  const { admin, session } = await authenticate.admin(request);
-  const appUrl = new URL(request.url).origin;
-
-  // Inject tracking script into storefront (no-op if already installed)
-  await ensureScriptTag(admin, session.shop, appUrl).catch((err) => {
-    console.error("ScriptTag injection failed:", err);
-  });
-
+  await authenticate.admin(request);
   return { apiKey: process.env.SHOPIFY_API_KEY || "" };
 };
 

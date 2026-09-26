@@ -11,8 +11,9 @@ import { detectAIPlatform } from "../lib/attribution.server";
 // Allow calls from merchant storefronts
 function corsHeaders(origin: string | null) {
   return {
-    "Access-Control-Allow-Origin": origin ?? "*",
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "POST, OPTIONS",
+    "Access-Control-Allow-Credentials": "false",
     "Access-Control-Allow-Headers": "Content-Type",
   };
 }

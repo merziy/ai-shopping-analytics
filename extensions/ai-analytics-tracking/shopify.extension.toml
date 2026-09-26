@@ -1,0 +1,7 @@
+api_version = "2025-01"
+
+[[extensions]]
+name = "AI Analytics Tracking"
+handle = "ai-analytics-tracking"
+uid = "d8ef1097-5682-ed16-7863-7126fd9a1d61b707c330"
+type = "theme"
